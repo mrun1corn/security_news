@@ -22,6 +22,13 @@ class _ArticleDetailScreenState extends State<ArticleDetailScreen> {
   bool _isLoadingFullArticle = false;
   String? _errorMessage;
 
+  @override
+  void initState() {
+    super.initState();
+    // Automatically trigger full article extraction
+    _loadFullArticle();
+  }
+
   Future<void> _loadFullArticle() async {
     setState(() {
       _isLoadingFullArticle = true;
@@ -230,30 +237,14 @@ class _ArticleDetailScreenState extends State<ArticleDetailScreen> {
                       return null;
                     },
                   ),
-                  if (_fullContent == null && !_isLoadingFullArticle)
+                  if (_fullContent == null && !_isLoadingFullArticle && _errorMessage != null)
                     Padding(
                       padding: const EdgeInsets.only(top: 40.0),
                       child: Center(
-                        child: Column(
-                          children: [
-                            if (_errorMessage != null)
-                              Padding(
-                                padding: const EdgeInsets.only(bottom: 16.0),
-                                child: Text(_errorMessage!, style: const TextStyle(color: Colors.redAccent)),
-                              ),
-                            ElevatedButton.icon(
-                              onPressed: _loadFullArticle,
-                              icon: const Icon(Icons.auto_stories),
-                              label: const Text('GET FULL ARTICLE'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Theme.of(context).colorScheme.primary.withAlpha(40),
-                                foregroundColor: Theme.of(context).colorScheme.primary,
-                                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                                side: BorderSide(color: Theme.of(context).colorScheme.primary, width: 1),
-                                textStyle: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2),
-                              ),
-                            ),
-                          ],
+                        child: Text(
+                          _errorMessage!,
+                          style: const TextStyle(color: Colors.redAccent),
+                          textAlign: TextAlign.center,
                         ),
                       ),
                     ),
