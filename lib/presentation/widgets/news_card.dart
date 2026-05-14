@@ -94,21 +94,40 @@ class NewsCard extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 14),
-              if (article.imageUrl != null)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 12.0),
-                  child: Hero(
-                    tag: 'article_image_${article.url}',
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: Image.network(
-                        article.imageUrl!,
-                        width: double.infinity,
-                        height: 200,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) =>
-                            const SizedBox.shrink(),
-                      ),
+              if (article.imageUrl != null && article.imageUrl!.isNotEmpty)
+                Hero(
+                  tag: 'article_image_${article.url}',
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.network(
+                      article.imageUrl!,
+                      width: double.infinity,
+                      height: 200,
+                      fit: BoxFit.cover,
+                      frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+                        if (wasSynchronouslyLoaded || frame != null) {
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 12.0),
+                            child: child,
+                          );
+                        }
+                        return Container(
+                          height: 200,
+                          margin: const EdgeInsets.only(bottom: 12.0),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withAlpha(13),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Center(
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.cyanAccent),
+                            ),
+                          ),
+                        );
+                      },
+                      errorBuilder: (context, error, stackTrace) =>
+                          const SizedBox.shrink(),
                     ),
                   ),
                 ),

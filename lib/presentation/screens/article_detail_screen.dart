@@ -68,12 +68,27 @@ class _ArticleDetailScreenState extends State<ArticleDetailScreen> {
             expandedHeight: 300,
             pinned: true,
             flexibleSpace: FlexibleSpaceBar(
-              background: article.imageUrl != null
+              background: (article.imageUrl != null && article.imageUrl!.isNotEmpty)
                   ? Hero(
                       tag: 'article_image_${article.url}',
                       child: Image.network(
                         article.imageUrl!,
                         fit: BoxFit.cover,
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          return Container(
+                            color: const Color(0xFF1F1F1F),
+                            child: const Center(
+                              child: CircularProgressIndicator(
+                                valueColor: AlwaysStoppedAnimation<Color>(Colors.cyanAccent),
+                              ),
+                            ),
+                          );
+                        },
+                        errorBuilder: (context, error, stackTrace) => Container(
+                          color: const Color(0xFF1F1F1F),
+                          child: const Icon(Icons.broken_image, color: Colors.grey, size: 48),
+                        ),
                       ),
                     )
                   : Container(color: const Color(0xFF1F1F1F)),

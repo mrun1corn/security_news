@@ -44,7 +44,7 @@ class NewsRepositoryImpl implements NewsRepository {
     final List<Article> bookmarks = bookmarksJson.map((j) => _articleFromJson(json.decode(j))).toList();
     
     final index = bookmarks.indexWhere((a) => a.url == article.url);
-    if (index != null && index != -1) {
+    if (index != -1) {
       bookmarks.removeAt(index);
     } else {
       bookmarks.insert(0, article.copyWith(isBookmarked: true));
@@ -76,8 +76,9 @@ class NewsRepositoryImpl implements NewsRepository {
 
   Future<void> _fetchAndStream(NewsCategory category, StreamController<List<Article>> controller) async {
     try {
+      final prefs = await SharedPreferences.getInstance();
+
       if (category == NewsCategory.bookmarks) {
-        final prefs = await SharedPreferences.getInstance();
         final bookmarksJson = prefs.getStringList(_bookmarksListKey) ?? [];
         final bookmarks = bookmarksJson.map((j) => _articleFromJson(json.decode(j))).toList();
         controller.add(bookmarks);
@@ -93,12 +94,11 @@ class NewsRepositoryImpl implements NewsRepository {
 
       final categorySources = _sources.where((s) => s.category == category).toList();
       final List<Article> allArticles = List.from(cached);
-
-      final prefs = await SharedPreferences.getInstance();
       final bookmarks = prefs.getStringList(_bookmarksKey) ?? [];
 
       // 2. Start all fetches concurrently
-      final List<Future<void>> fetches = categorySources.map((source) async {
+      // Using Future.wait to wrap the map ensures we can do a final save at the end
+      await Future.wait(categorySources.map((source) async {
         try {
           final newArticles = await _rssService.fetchArticles(
             source.url,
@@ -125,21 +125,21 @@ class NewsRepositoryImpl implements NewsRepository {
               return b.publishedDate!.compareTo(a.publishedDate!);
             });
 
-            // Emit updated list
+            // Emit updated list progressively for perceived speed
             if (!controller.isClosed) {
               controller.add(List.from(allArticles));
             }
-
-            // Save intermediate state to cache
-            _saveToCache(category, allArticles);
           }
         } catch (e) {
           debugPrint('Error fetching from ${source.name}: $e');
         }
-      }).toList();
+      }));
 
-      // Wait for all to finish before closing
-      await Future.wait(fetches);
+      // 3. Save to cache only once after all sources are processed
+      if (allArticles.isNotEmpty) {
+        _saveToCache(category, allArticles);
+      }
+
       if (!controller.isClosed) {
         controller.close();
       }

@@ -1,5 +1,6 @@
 import 'package:dart_rss/dart_rss.dart';
 import 'package:flutter/foundation.dart';
+import 'package:html/parser.dart' as html;
 import 'package:security_news/data/models/article.dart';
 import 'package:security_news/data/models/news_source.dart';
 
@@ -129,9 +130,11 @@ extension AtomItemMapper on AtomItem {
 }
 
 String _stripHtml(String htmlString) {
-  // 1. Remove scripts, styles
-  String result = htmlString.replaceAll(RegExp(r'<script[^>]*>[\s\S]*?<\/script>'), '');
-  result = result.replaceAll(RegExp(r'<style[^>]*>[\s\S]*?<\/style>'), '');
+  if (htmlString.isEmpty) return '';
+  
+  // 1. Parse HTML and get text content (robustly handles entities and tags)
+  final document = html.parse(htmlString);
+  String result = document.documentElement?.text ?? '';
   
   // 2. Remove common WordPress boilerplate at the end of many feeds (Sophos, Krebs, etc.)
   // e.g., "The post [Title] appeared first on [Source]."
@@ -140,13 +143,10 @@ String _stripHtml(String htmlString) {
   // 3. Remove "Read more", "Continue reading", "[...]" markers
   result = result.replaceAll(RegExp(r'(?:Read more|Continue reading|View Article).*?(\.|$)', caseSensitive: false), '');
 
-  // 4. Remove all other tags and decode common entities
-  result = result.replaceAll(RegExp(r'<[^>]*>|&[^;]+;'), ' ');
-  
-  // 5. Normalize whitespace
+  // 4. Normalize whitespace
   result = result.trim().replaceAll(RegExp(r'\s+'), ' ');
 
-  // 6. Remove common RSS truncation markers
+  // 5. Remove common RSS truncation markers
   result = result.replaceAll(RegExp(r'\s?\[\.\.\.\]$'), '');
   result = result.replaceAll(RegExp(r'\s?\.\.\.$'), '');
   result = result.replaceAll(RegExp(r'\s?\[\u2026\]$'), ''); // Unicode ellipsis
