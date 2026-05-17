@@ -3,7 +3,7 @@ import 'package:security_news/data/models/news_source.dart';
 
 class Article extends Equatable {
   final String title;
-  final String description;
+  final String description; // Raw HTML or plain text
   final String content;
   final String url;
   final String sourceName;
@@ -25,6 +25,23 @@ class Article extends Equatable {
     this.imageUrl,
     this.isBookmarked = false,
   });
+
+  // Getter to provide a plain text snippet for UI previews
+  String get snippet {
+    // Basic tag stripping if description contains HTML
+    final stripped = description.replaceAll(RegExp(r'<[^>]*>|&[^;]+;'), ' ');
+    return stripped.trim().replaceAll(RegExp(r'\s+'), ' ');
+  }
+
+  // Centralized reading time logic
+  int get readingTime => calculateReadingTime(content.isNotEmpty ? content : description);
+
+  static int calculateReadingTime(String text) {
+    final cleanText = text.replaceAll(RegExp(r'<[^>]*>'), '');
+    final words = cleanText.split(RegExp(r'\s+')).length;
+    final minutes = (words / 200).ceil();
+    return minutes > 0 ? minutes : 1;
+  }
 
   Article copyWith({
     String? title,

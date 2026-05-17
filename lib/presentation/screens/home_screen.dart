@@ -33,7 +33,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 style: const TextStyle(color: Colors.white, fontSize: 18),
                 onChanged: (value) {
-                  setState(() {}); // Trigger rebuild to filter list
+                  context.read<NewsBloc>().add(SearchNews(value));
                 },
               )
             : Row(
@@ -63,7 +63,10 @@ class _HomeScreenState extends State<HomeScreen> {
             onPressed: () {
               setState(() {
                 _isSearching = !_isSearching;
-                if (!_isSearching) _searchController.clear();
+                if (!_isSearching) {
+                  _searchController.clear();
+                  context.read<NewsBloc>().add(const SearchNews(''));
+                }
               });
             },
           ),
@@ -91,16 +94,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 if (state is NewsLoading) {
                   return _buildShimmerLoading();
                 } else if (state is NewsLoaded) {
-                  var articles = state.articles;
+                  final articles = state.articles;
                   
-                  // Filter by search query if active
-                  if (_searchController.text.isNotEmpty) {
-                    articles = articles.where((a) => 
-                      a.title.toLowerCase().contains(_searchController.text.toLowerCase()) ||
-                      a.description.toLowerCase().contains(_searchController.text.toLowerCase())
-                    ).toList();
-                  }
-
                   if (articles.isEmpty) {
                     return Center(
                       child: Column(
@@ -109,11 +104,19 @@ class _HomeScreenState extends State<HomeScreen> {
                           Icon(Icons.search_off, size: 64, color: Colors.grey[700]),
                           const SizedBox(height: 16),
                           Text(
-                            _searchController.text.isNotEmpty 
-                                ? 'No results for "${_searchController.text}"'
+                            state.searchQuery.isNotEmpty 
+                                ? 'No results for "${state.searchQuery}"'
                                 : 'No news found.',
                             style: const TextStyle(color: Colors.grey),
                           ),
+                          if (state.searchQuery.isNotEmpty)
+                            TextButton(
+                              onPressed: () {
+                                _searchController.clear();
+                                context.read<NewsBloc>().add(const SearchNews(''));
+                              },
+                              child: const Text('Clear Search'),
+                            ),
                         ],
                       ),
                     );
@@ -123,11 +126,16 @@ class _HomeScreenState extends State<HomeScreen> {
                     onRefresh: () async {
                       context.read<NewsBloc>().add(FetchNews(state.category));
                     },
-                    child: ListView.builder(
-                      itemCount: articles.length,
-                      itemBuilder: (context, index) {
-                        return NewsCard(article: articles[index]);
-                      },
+                    child: Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 800),
+                        child: ListView.builder(
+                          itemCount: articles.length,
+                          itemBuilder: (context, index) {
+                            return NewsCard(article: articles[index]);
+                          },
+                        ),
+                      ),
                     ),
                   );
                 } else if (state is NewsError) {
@@ -206,24 +214,41 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildShimmerLoading() {
-    return ListView.builder(
-      itemCount: 6,
-      itemBuilder: (context, index) {
-        return Shimmer.fromColors(
-          baseColor: const Color(0xFF1E1E1E),
-          highlightColor: const Color(0xFF2C2C2C),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            child: Container(
-              height: 120,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 800),
+        child: ListView.builder(
+          itemCount: 6,
+          itemBuilder: (context, index) {
+            return Shimmer.fromColors(
+              baseColor: const Color(0xFF1E1E1E),
+              highlightColor: const Color(0xFF2C2C2C),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(width: 100, height: 12, color: Colors.white),
+                      const SizedBox(height: 14),
+                      Container(width: double.infinity, height: 200, color: Colors.white),
+                      const SizedBox(height: 14),
+                      Container(width: double.infinity, height: 20, color: Colors.white),
+                      const SizedBox(height: 8),
+                      Container(width: 200, height: 20, color: Colors.white),
+                    ],
+                  ),
+                ),
               ),
-            ),
-          ),
-        );
-      },
+            );
+          },
+        ),
+      ),
     );
   }
 

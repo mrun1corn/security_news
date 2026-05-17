@@ -27,6 +27,15 @@ class ToggleBookmark extends NewsEvent {
   List<Object> get props => [article];
 }
 
+class SearchNews extends NewsEvent {
+  final String query;
+
+  const SearchNews(this.query);
+
+  @override
+  List<Object> get props => [query];
+}
+
 abstract class NewsState extends Equatable {
   const NewsState();
 
@@ -39,13 +48,20 @@ class NewsInitial extends NewsState {}
 class NewsLoading extends NewsState {}
 
 class NewsLoaded extends NewsState {
-  final List<Article> articles;
+  final List<Article> articles; // This will be the filtered list
+  final List<Article> allArticles; // This keeps the full list for searching
   final NewsCategory category;
+  final String searchQuery;
 
-  const NewsLoaded(this.articles, this.category);
+  const NewsLoaded({
+    required this.articles,
+    required this.allArticles,
+    required this.category,
+    this.searchQuery = '',
+  });
 
   @override
-  List<Object> get props => [articles, category];
+  List<Object> get props => [articles, allArticles, category, searchQuery];
 }
 
 class NewsError extends NewsState {

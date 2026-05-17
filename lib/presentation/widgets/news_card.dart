@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:timeago/timeago.dart' as timeago;
@@ -47,11 +48,11 @@ class NewsCard extends StatelessWidget {
                       padding: const EdgeInsets.only(right: 8.0),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(4),
-                        child: Image.network(
-                          article.sourceIconUrl!,
+                        child: CachedNetworkImage(
+                          imageUrl: article.sourceIconUrl!,
                           height: 18,
                           width: 16,
-                          errorBuilder: (context, error, stackTrace) =>
+                          errorWidget: (context, url, error) =>
                               const SizedBox.shrink(),
                         ),
                       ),
@@ -99,35 +100,39 @@ class NewsCard extends StatelessWidget {
                   tag: 'article_image_${article.url}',
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(12),
-                    child: Image.network(
-                      article.imageUrl!,
+                    child: CachedNetworkImage(
+                      imageUrl: article.imageUrl!,
                       width: double.infinity,
                       height: 200,
                       fit: BoxFit.cover,
-                      frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
-                        if (wasSynchronouslyLoaded || frame != null) {
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 12.0),
-                            child: child,
-                          );
-                        }
-                        return Container(
-                          height: 200,
-                          margin: const EdgeInsets.only(bottom: 12.0),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withAlpha(13),
-                            borderRadius: BorderRadius.circular(12),
+                      placeholder: (context, url) => Container(
+                        height: 200,
+                        margin: const EdgeInsets.only(bottom: 12.0),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withAlpha(13),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Center(
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.cyanAccent),
                           ),
-                          child: const Center(
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.cyanAccent),
-                            ),
-                          ),
-                        );
-                      },
-                      errorBuilder: (context, error, stackTrace) =>
-                          const SizedBox.shrink(),
+                        ),
+                      ),
+                      errorWidget: (context, url, error) => Container(
+                        height: 200,
+                        width: double.infinity,
+                        margin: const EdgeInsets.only(bottom: 12.0),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withAlpha(5),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(Icons.broken_image, color: Colors.grey[800], size: 40),
+                      ),
+                      imageBuilder: (context, imageProvider) => Padding(
+                        padding: const EdgeInsets.only(bottom: 12.0),
+                        child: Image(image: imageProvider, fit: BoxFit.cover),
+                      ),
                     ),
                   ),
                 ),
@@ -145,7 +150,7 @@ class NewsCard extends StatelessWidget {
               ),
               const SizedBox(height: 10),
               Text(
-                article.description,
+                article.snippet,
                 style: TextStyle(
                   fontSize: 15,
                   color: Colors.grey[400],
@@ -153,6 +158,17 @@ class NewsCard extends StatelessWidget {
                 ),
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Icon(Icons.timer_outlined, size: 14, color: Colors.grey[600]),
+                  const SizedBox(width: 4),
+                  Text(
+                    '${article.readingTime} min read',
+                    style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                  ),
+                ],
               ),
             ],
           ),

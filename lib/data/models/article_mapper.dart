@@ -1,6 +1,6 @@
 import 'package:dart_rss/dart_rss.dart';
 import 'package:flutter/foundation.dart';
-import 'package:html/parser.dart' as html;
+import 'package:intl/intl.dart';
 import 'package:security_news/data/models/article.dart';
 import 'package:security_news/data/models/news_source.dart';
 
@@ -8,7 +8,7 @@ extension RssItemMapper on RssItem {
   Article toArticle(String sourceName, {String? sourceIconUrl, NewsCategory? category}) {
     return Article(
       title: title ?? 'No Title',
-      description: _stripHtml(description ?? ''),
+      description: description ?? '',
       content: content?.value ?? '',
       url: link ?? '',
       sourceName: sourceName,
@@ -21,18 +21,30 @@ extension RssItemMapper on RssItem {
 
   DateTime? _parseDate(String dateString) {
     try {
-      // Try standard ISO 8601 first
+      // 1. Try standard ISO 8601
       final parsed = DateTime.tryParse(dateString);
       if (parsed != null) return parsed;
 
-      // Manually handle common RSS format: "Wed, 13 May 2026 13:38:54 +0530"
-      // Most RSS parsers recommend using HttpDate from dart:io, but it's not available on web
-      // Simple fallback: remove the day name and try again
-      final cleanDate = dateString.contains(',') 
-          ? dateString.split(',')[1].trim() 
-          : dateString;
-      
-      // Handle "+0530" or "GMT"
+      // 2. Try common RSS format (RFC 822/1123)
+      // Example: "Wed, 13 May 2026 13:38:54 +0530" or "Sun, 17 May 2026 07:50:54 GMT"
+      // DateFormat doesn't handle all variations perfectly, so we'll try a few patterns
+      final patterns = [
+        'EEE, dd MMM yyyy HH:mm:ss Z',
+        'EEE, dd MMM yyyy HH:mm:ss zzz',
+        'dd MMM yyyy HH:mm:ss Z',
+        'yyyy-MM-ddTHH:mm:ssZ',
+        'yyyy-MM-dd HH:mm:ss',
+      ];
+
+      for (var pattern in patterns) {
+        try {
+          return DateFormat(pattern).parse(dateString);
+        } catch (_) {}
+      }
+
+      // 3. Fallback for mixed formats like "Sat, 16 May 2026 20:50:48 +0530"
+      // where +0530 might need manual cleaning or specific pattern
+      final cleanDate = dateString.replaceAll(RegExp(r'\s+'), ' ').trim();
       return DateTime.tryParse(cleanDate);
     } catch (_) {
       return null;
@@ -56,17 +68,7 @@ extension RssItemMapper on RssItem {
     }
     // 4. Try to extract from description or content (handle encoded and raw HTML)
     final htmlContent = (content?.value ?? '') + (description ?? '');
-    // Support both raw <img src="..."> and encoded &lt;img src=&quot;...&quot;&gt;
-    final match = RegExp(r'(?:<img|&lt;img)[^>]+src=(?:"|&quot;)([^">]+)(?:"|&quot;)', caseSensitive: false)
-        .firstMatch(htmlContent);
-    
-    if (match != null) {
-      String url = match.group(1)!;
-      // Decode if it was &amp; encoded
-      url = url.replaceAll('&amp;', '&');
-      return _proxyIfWeb(url);
-    }
-    return null;
+    return _extractImageFromHtml(htmlContent);
   }
 
   String _proxyIfWeb(String url) {
@@ -81,7 +83,7 @@ extension AtomItemMapper on AtomItem {
   Article toArticle(String sourceName, {String? sourceIconUrl, NewsCategory? category}) {
     return Article(
       title: title ?? 'No Title',
-      description: _stripHtml(summary ?? ''),
+      description: summary ?? '',
       content: content ?? '',
       url: links.isNotEmpty ? links.first.href ?? '' : '',
       sourceName: sourceName,
@@ -114,11 +116,7 @@ extension AtomItemMapper on AtomItem {
 
     // 3. Try to extract from summary or content
     final htmlContent = (content ?? '') + (summary ?? '');
-    final match = RegExp(r'<img[^>]+src="([^">]+)"').firstMatch(htmlContent);
-    if (match != null) {
-      return _proxyIfWeb(match.group(1)!);
-    }
-    return null;
+    return _extractImageFromHtml(htmlContent);
   }
 
   String _proxyIfWeb(String url) {
@@ -129,27 +127,25 @@ extension AtomItemMapper on AtomItem {
   }
 }
 
-String _stripHtml(String htmlString) {
-  if (htmlString.isEmpty) return '';
-  
-  // 1. Parse HTML and get text content (robustly handles entities and tags)
-  final document = html.parse(htmlString);
-  String result = document.documentElement?.text ?? '';
-  
-  // 2. Remove common WordPress boilerplate at the end of many feeds (Sophos, Krebs, etc.)
-  // e.g., "The post [Title] appeared first on [Source]."
-  result = result.replaceAll(RegExp(r'The post.*?appeared first on.*?(\.|$)', caseSensitive: false), '');
-  
-  // 3. Remove "Read more", "Continue reading", "[...]" markers
-  result = result.replaceAll(RegExp(r'(?:Read more|Continue reading|View Article).*?(\.|$)', caseSensitive: false), '');
+String? _extractImageFromHtml(String htmlContent) {
+  if (htmlContent.isEmpty) return null;
 
-  // 4. Normalize whitespace
-  result = result.trim().replaceAll(RegExp(r'\s+'), ' ');
+  // Improved regex to handle various quote styles and encoded HTML
+  // Focuses on extracting the first URL that looks like an image source
+  final match = RegExp(
+    r'<img[^>]+src=["' "'" r']([^"' "'" r'>\s]+)',
+    caseSensitive: false,
+  ).firstMatch(htmlContent) ??
+  RegExp(
+    r'&lt;img[^&]+src=["' "'" r']([^"' "'" r'&>\s]+)',
+    caseSensitive: false,
+  ).firstMatch(htmlContent);
 
-  // 5. Remove common RSS truncation markers
-  result = result.replaceAll(RegExp(r'\s?\[\.\.\.\]$'), '');
-  result = result.replaceAll(RegExp(r'\s?\.\.\.$'), '');
-  result = result.replaceAll(RegExp(r'\s?\[\u2026\]$'), ''); // Unicode ellipsis
-
-  return result.trim();
+  if (match != null) {
+    String url = match.group(1)!;
+    // Basic cleanup of encoded entities if present
+    url = url.replaceAll('&amp;', '&');
+    return url;
+  }
+  return null;
 }

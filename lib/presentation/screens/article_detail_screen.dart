@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
@@ -19,6 +20,7 @@ class ArticleDetailScreen extends StatefulWidget {
 
 class _ArticleDetailScreenState extends State<ArticleDetailScreen> {
   String? _fullContent;
+  String? _lazyImageUrl;
   bool _isLoadingFullArticle = false;
   String? _errorMessage;
 
@@ -37,13 +39,14 @@ class _ArticleDetailScreenState extends State<ArticleDetailScreen> {
 
     try {
       final repository = context.read<NewsRepository>();
-      final content = await repository.fetchFullArticle(widget.article.url);
+      final data = await repository.fetchFullArticle(widget.article.url);
       
       if (mounted) {
         setState(() {
-          _fullContent = content;
+          _fullContent = data?.content;
+          _lazyImageUrl = data?.imageUrl;
           _isLoadingFullArticle = false;
-          if (content == null) {
+          if (data?.content == null) {
             _errorMessage = "Could not extract full article content.";
           }
         });
@@ -58,16 +61,13 @@ class _ArticleDetailScreenState extends State<ArticleDetailScreen> {
     }
   }
 
-  int _calculateReadingTime(String text) {
-    final cleanText = text.replaceAll(RegExp(r'<[^>]*>'), '');
-    final words = cleanText.split(RegExp(r'\s+')).length;
-    final minutes = (words / 200).ceil();
-    return minutes > 0 ? minutes : 1;
-  }
-
   @override
   Widget build(BuildContext context) {
     final article = widget.article;
+    final displayImageUrl = (article.imageUrl != null && article.imageUrl!.isNotEmpty) 
+        ? article.imageUrl 
+        : _lazyImageUrl;
+
     return Scaffold(
       body: CustomScrollView(
         slivers: [
@@ -75,24 +75,21 @@ class _ArticleDetailScreenState extends State<ArticleDetailScreen> {
             expandedHeight: 300,
             pinned: true,
             flexibleSpace: FlexibleSpaceBar(
-              background: (article.imageUrl != null && article.imageUrl!.isNotEmpty)
+              background: (displayImageUrl != null && displayImageUrl.isNotEmpty)
                   ? Hero(
                       tag: 'article_image_${article.url}',
-                      child: Image.network(
-                        article.imageUrl!,
+                      child: CachedNetworkImage(
+                        imageUrl: displayImageUrl,
                         fit: BoxFit.cover,
-                        loadingBuilder: (context, child, loadingProgress) {
-                          if (loadingProgress == null) return child;
-                          return Container(
-                            color: const Color(0xFF1F1F1F),
-                            child: const Center(
-                              child: CircularProgressIndicator(
-                                valueColor: AlwaysStoppedAnimation<Color>(Colors.cyanAccent),
-                              ),
+                        placeholder: (context, url) => Container(
+                          color: const Color(0xFF1F1F1F),
+                          child: const Center(
+                            child: CircularProgressIndicator(
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.cyanAccent),
                             ),
-                          );
-                        },
-                        errorBuilder: (context, error, stackTrace) => Container(
+                          ),
+                        ),
+                        errorWidget: (context, url, error) => Container(
                           color: const Color(0xFF1F1F1F),
                           child: const Icon(Icons.broken_image, color: Colors.grey, size: 48),
                         ),
@@ -142,11 +139,11 @@ class _ArticleDetailScreenState extends State<ArticleDetailScreen> {
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(6),
                             ),
-                            child: Image.network(
-                              article.sourceIconUrl!,
+                            child: CachedNetworkImage(
+                              imageUrl: article.sourceIconUrl!,
                               height: 24,
                               width: 24,
-                              errorBuilder: (context, error, stackTrace) => Icon(
+                              errorWidget: (context, url, error) => Icon(
                                 Icons.article,
                                 color: Theme.of(context).colorScheme.primary,
                                 size: 20,
@@ -194,7 +191,7 @@ class _ArticleDetailScreenState extends State<ArticleDetailScreen> {
                       Icon(Icons.timer_outlined, size: 16, color: Colors.grey[500]),
                       const SizedBox(width: 6),
                       Text(
-                        '${_calculateReadingTime(_fullContent ?? article.content + article.description)} min read',
+                        '${Article.calculateReadingTime(_fullContent ?? article.content + article.description)} min read',
                         style: TextStyle(color: Colors.grey[500], fontSize: 13, fontWeight: FontWeight.w500),
                       ),
                     ],
@@ -249,14 +246,16 @@ class _ArticleDetailScreenState extends State<ArticleDetailScreen> {
                       ),
                     ),
                   if (_isLoadingFullArticle)
-                    const Padding(
-                      padding: EdgeInsets.only(top: 40.0),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 40.0),
                       child: Center(
                         child: Column(
                           children: [
-                            CircularProgressIndicator(),
-                            SizedBox(height: 16),
-                            Text('Extracting full article...', style: TextStyle(color: Colors.grey)),
+                            const CircularProgressIndicator(
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.cyanAccent),
+                            ),
+                            const SizedBox(height: 16),
+                            Text('Extracting full article...', style: TextStyle(color: Colors.grey[500])),
                           ],
                         ),
                       ),

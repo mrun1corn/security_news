@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:security_news/core/constants.dart';
 import 'package:security_news/data/models/news_source.dart';
 import 'package:security_news/data/providers/full_text_service.dart';
@@ -33,28 +34,30 @@ class CyberWatchApp extends StatelessWidget {
           debugShowCheckedModeBanner: false,
           theme: ThemeData(
             useMaterial3: true,
-            scaffoldBackgroundColor: const Color(0xFF121212),
-            appBarTheme: const AppBarTheme(
-              backgroundColor: Color(0xFF1F1F1F),
+            scaffoldBackgroundColor: const Color(0xFF0F0F0F),
+            textTheme: GoogleFonts.exo2TextTheme(ThemeData.dark().textTheme),
+            appBarTheme: AppBarTheme(
+              backgroundColor: const Color(0xFF151515),
               foregroundColor: Colors.white,
               elevation: 0,
+              titleTextStyle: GoogleFonts.exo2(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             colorScheme: ColorScheme.fromSeed(
               seedColor: Colors.cyan,
               brightness: Brightness.dark,
               primary: Colors.cyanAccent,
-              surface: const Color(0xFF1E1E1E),
-            ),
-            textTheme: const TextTheme(
-              titleLarge: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-              bodyMedium: TextStyle(color: Colors.white70),
-              bodySmall: TextStyle(color: Colors.white60),
+              surface: const Color(0xFF151515),
             ),
             chipTheme: ChipThemeData(
-              backgroundColor: const Color(0xFF2C2C2C),
-              selectedColor: Colors.cyanAccent.withAlpha(50),
+              backgroundColor: const Color(0xFF1E1E1E),
+              selectedColor: Colors.cyanAccent.withAlpha(40),
               labelStyle: const TextStyle(color: Colors.white70),
               secondaryLabelStyle: const TextStyle(color: Colors.cyanAccent),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
           ),
           home: const HomeScreen(),

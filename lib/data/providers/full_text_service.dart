@@ -1,27 +1,45 @@
-import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
+import 'package:security_news/core/network_utils.dart';
 import 'package:html/parser.dart' as html_parser;
 import 'package:html/dom.dart' as dom;
 
+class FullArticleData {
+  final String? content;
+  final String? imageUrl;
+
+  FullArticleData({this.content, this.imageUrl});
+}
+
 class FullTextService {
-  final Dio _dio;
-
-  FullTextService({Dio? dio}) : _dio = dio ?? Dio();
-
-  Future<String?> fetchFullArticle(String url) async {
+  Future<FullArticleData?> fetchFullArticle(String url) async {
     try {
-      String effectiveUrl = url;
-      if (kIsWeb) {
-        effectiveUrl = 'https://corsproxy.io/?${Uri.encodeComponent(url)}';
-      }
-
-      final response = await _dio.get(effectiveUrl);
-      if (response.statusCode == 200) {
-        final document = html_parser.parse(response.data.toString());
-        return _extractMainContent(document);
+      final responseData = await NetworkUtils.fetchWithFallback(url);
+      if (responseData != null) {
+        final document = html_parser.parse(responseData);
+        return FullArticleData(
+          content: _extractMainContent(document),
+          imageUrl: _extractOgImage(document),
+        );
       }
     } catch (e) {
-      debugPrint('Error fetching full article: $e');
+      // Logic for logging can be added here if needed
+    }
+    return null;
+  }
+
+  String? _extractOgImage(dom.Document document) {
+    final metaTags = [
+      'meta[property="og:image"]',
+      'meta[name="twitter:image"]',
+      'meta[property="og:image:secure_url"]',
+      'link[rel="image_src"]',
+    ];
+
+    for (var selector in metaTags) {
+      final element = document.querySelector(selector);
+      if (element != null) {
+        final content = element.attributes['content'] ?? element.attributes['href'];
+        if (content != null && content.isNotEmpty) return content;
+      }
     }
     return null;
   }

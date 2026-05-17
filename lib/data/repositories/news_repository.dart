@@ -10,7 +10,7 @@ import 'package:security_news/data/providers/full_text_service.dart';
 abstract class NewsRepository {
   Stream<List<Article>> streamNewsByCategory(NewsCategory category);
   Future<List<Article>> getCachedNews(NewsCategory category);
-  Future<String?> fetchFullArticle(String url);
+  Future<FullArticleData?> fetchFullArticle(String url);
   Future<void> toggleBookmark(Article article);
   Future<bool> isBookmarked(String url);
 }
@@ -31,7 +31,7 @@ class NewsRepositoryImpl implements NewsRepository {
         _sources = sources;
 
   @override
-  Future<String?> fetchFullArticle(String url) async {
+  Future<FullArticleData?> fetchFullArticle(String url) async {
     return await _fullTextService.fetchFullArticle(url);
   }
 

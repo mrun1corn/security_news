@@ -1,4 +1,4 @@
-package com.cyberwatch.security_news
+package org.mrun1corn.cyberw
 
 import io.flutter.embedding.android.FlutterActivity
 

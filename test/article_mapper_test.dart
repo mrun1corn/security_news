@@ -27,5 +27,27 @@ void main() {
       expect(article.sourceName, 'Test Source');
       expect(article.description, contains('A major breach occurred.'));
     });
+
+    test('should parse RFC 822 date format correctly (The Hacker News style)', () {
+      const xml = '''
+      <rss version="2.0">
+        <channel>
+          <item>
+            <title>Bug Repro</title>
+            <pubDate>Sat, 16 May 2026 20:50:48 +0530</pubDate>
+          </item>
+        </channel>
+      </rss>
+      ''';
+
+      final feed = RssFeed.parse(xml);
+      final item = feed.items.first;
+      final article = item.toArticle('Test');
+
+      expect(article.publishedDate, isNotNull);
+      expect(article.publishedDate!.year, 2026);
+      expect(article.publishedDate!.month, 5);
+      expect(article.publishedDate!.day, 16);
+    });
   });
 }
