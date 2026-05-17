@@ -63,9 +63,15 @@ class AppConstants {
     ),
     // Virtualization
     NewsSource(
-      name: 'vSphere-Land',
-      url: 'https://vsphere-land.com/feed',
-      iconUrl: 'https://vsphere-land.com/favicon.ico',
+      name: 'Virtually Ghetto',
+      url: 'https://williamlam.com/feed',
+      iconUrl: 'https://williamlam.com/favicon.ico',
+      category: NewsCategory.virtualization,
+    ),
+    NewsSource(
+      name: 'Yellow Bricks',
+      url: 'https://www.yellow-bricks.com/feed/',
+      iconUrl: 'https://www.yellow-bricks.com/favicon.ico',
       category: NewsCategory.virtualization,
     ),
   ];

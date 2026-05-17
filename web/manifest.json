@@ -1,6 +1,6 @@
 {
-    "name": "security_news",
-    "short_name": "security_news",
+    "name": "Cyber Watch",
+    "short_name": "Cyber Watch",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

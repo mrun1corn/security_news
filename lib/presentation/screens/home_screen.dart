@@ -48,7 +48,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   const SizedBox(width: 12),
                   const Text(
-                    'CYBERWATCH',
+                    'Cyber Watch',
                     style: TextStyle(
                       fontWeight: FontWeight.w900,
                       letterSpacing: 2.0,

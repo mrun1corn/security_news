@@ -43,20 +43,6 @@ class NewsCard extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  if (article.sourceIconUrl != null)
-                    Padding(
-                      padding: const EdgeInsets.only(right: 8.0),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(4),
-                        child: CachedNetworkImage(
-                          imageUrl: article.sourceIconUrl!,
-                          height: 18,
-                          width: 16,
-                          errorWidget: (context, url, error) =>
-                              const SizedBox.shrink(),
-                        ),
-                      ),
-                    ),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
